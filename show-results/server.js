@@ -13,7 +13,79 @@ const client = new MongoClient('mongodb://' + (process.env.MONGO_HOST || 'mongo'
 const AUTH = process.env.AUTH_URL || 'http://auth:8000';
 const secure = process.env.COOKIE_SECURE === 'true';
 const cookieSettings = {httpOnly: true, secure, sameSite: 'strict', maxAge: 7200000};
-const style = `<style>body{font:16px system-ui;max-width:700px;margin:45px auto;padding:0 16px;line-height:1.5}input,button{padding:9px;margin:5px 0}.box{padding:18px;border:1px solid #ccc;border-radius:9px}</style>`;
+const style = `
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f1f5f9;
+        color: #1e293b;
+        max-width: 850px;
+        margin: 50px auto;
+        padding: 20px;
+        line-height: 1.6;
+    }
+
+    h1 {
+        color: #1d4ed8;
+        font-size: 32px;
+    }
+
+    h2 {
+        color: #334155;
+    }
+
+    .box {
+        background-color: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin: 20px 0;
+    }
+
+    input {
+        padding: 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        margin: 10px 0;
+        font-size: 16px;
+    }
+
+    button {
+        background-color: #2563eb;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    button:hover {
+        background-color: #1d4ed8;
+    }
+
+    a {
+        color: #2563eb;
+        text-decoration: none;
+        margin-right: 12px;
+    }
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+    li {
+        background-color: white;
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+    }
+
+    .err {
+        color: #dc2626;
+    }
+</style>
+`;
 const page = body => `<!doctype html><html><head><meta charset="utf-8"><title>Analytics Results</title>${style}</head><body>${body}</body></html>`;
 const escapeHtml = s => String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 

@@ -22,7 +22,79 @@ app=Flask(__name__)
 AUTH=os.getenv('AUTH_URL','http://auth:8000')
 ANALYTICS=os.getenv('ANALYTICS_URL','http://analytics:8000')
 SECURE=os.getenv('COOKIE_SECURE','false').lower()=='true'
-STYLE='''<style>body{font:16px system-ui;max-width:700px;margin:45px auto;padding:0 16px;line-height:1.5}input,button{padding:9px;margin:5px 0}a{margin-right:12px}.box{padding:18px;border:1px solid #ccc;border-radius:9px}.err{color:#a33}</style>'''
+STYLE = """
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f1f5f9;
+        color: #1e293b;
+        max-width: 850px;
+        margin: 50px auto;
+        padding: 20px;
+        line-height: 1.6;
+    }
+
+    h1 {
+        color: #1d4ed8;
+        font-size: 32px;
+    }
+
+    h2 {
+        color: #334155;
+    }
+
+    .box {
+        background-color: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin: 20px 0;
+    }
+
+    input {
+        padding: 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        margin: 10px 0;
+        font-size: 16px;
+    }
+
+    button {
+        background-color: #2563eb;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    button:hover {
+        background-color: #1d4ed8;
+    }
+
+    a {
+        color: #2563eb;
+        text-decoration: none;
+        margin-right: 12px;
+    }
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+    li {
+        background-color: white;
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+    }
+
+    .err {
+        color: #dc2626;
+    }
+</style>
+"""
 
 def page(content): return '<!doctype html><html><head><meta charset="utf-8"><title>Enter Data</title>'+STYLE+'</head><body>'+content+'</body></html>'
 def who():
