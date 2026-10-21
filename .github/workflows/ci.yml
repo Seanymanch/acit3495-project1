@@ -34,28 +34,28 @@ jobs:
           docker build -t acit3495-analytics:scan ./analytics
           docker build -t acit3495-show-results:scan ./show-results
       - name: Scan auth image
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: acit3495-auth:scan
           format: table
           severity: CRITICAL,HIGH
           exit-code: '0'
       - name: Scan enter-data image
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: acit3495-enter-data:scan
           format: table
           severity: CRITICAL,HIGH
           exit-code: '0'
       - name: Scan analytics image
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: acit3495-analytics:scan
           format: table
           severity: CRITICAL,HIGH
           exit-code: '0'
       - name: Scan show-results image
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: acit3495-show-results:scan
           format: table
