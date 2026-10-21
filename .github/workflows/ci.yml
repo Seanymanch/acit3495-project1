@@ -1,0 +1,121 @@
+name: ACIT3495 Tests Build Scan Publish
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Python calculation unit tests
+        run: python -m unittest discover -s tests -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Node formatting unit tests
+        run: cd show-results && npm test
+
+  images:
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build four local images for scanning
+        run: |
+          docker build -t acit3495-auth:scan ./auth
+          docker build -t acit3495-enter-data:scan ./enter-data
+          docker build -t acit3495-analytics:scan ./analytics
+          docker build -t acit3495-show-results:scan ./show-results
+      - name: Scan auth image
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          image-ref: acit3495-auth:scan
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+      - name: Scan enter-data image
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          image-ref: acit3495-enter-data:scan
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+      - name: Scan analytics image
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          image-ref: acit3495-analytics:scan
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+      - name: Scan show-results image
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          image-ref: acit3495-show-results:scan
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+      - name: Set registry namespace to lowercase
+        if: github.event_name == 'push'
+        id: naming
+        shell: bash
+        run: echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up QEMU
+        if: github.event_name == 'push'
+        uses: docker/setup-qemu-action@v4
+      - name: Set up Buildx
+        if: github.event_name == 'push'
+        uses: docker/setup-buildx-action@v4
+      - name: Publish auth AMD64 and ARM64
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v7
+        with:
+          context: ./auth
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ steps.naming.outputs.owner }}/acit3495-auth:latest
+            ghcr.io/${{ steps.naming.outputs.owner }}/acit3495-auth:${{ github.sha }}
+      - name: Publish enter-data AMD64 and ARM64
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v7
+        with:
+          context: ./enter-data
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ steps.naming.outputs.owner }}/acit3495-enter-data:latest
+            ghcr.io/${{ steps.naming.outputs.owner }}/acit3495-enter-data:${{ github.sha }}
+      - name: Publish analytics AMD64 and ARM64
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v7
+        with:
+          context: ./analytics
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ steps.naming.outputs.owner }}/acit3495-analytics:latest
+            ghcr.io/${{ steps.naming.outputs.owner }}/acit3495-analytics:${{ github.sha }}
+      - name: Publish show-results AMD64 and ARM64
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v7
+        with:
+          context: ./show-results
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ steps.naming.outputs.owner }}/acit3495-show-results:latest
+            ghcr.io/${{ steps.naming.outputs.owner }}/acit3495-show-results:${{ github.sha }}

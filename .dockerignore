@@ -1,0 +1,9 @@
+.git
+.github
+.env
+secrets
+**/__pycache__
+**/node_modules
+**/.pytest_cache
+screenshots
+*.log

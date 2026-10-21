@@ -1,0 +1,11 @@
+{
+  "name": "acit3495-show-results",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {"start": "node server.js", "test": "node --test"},
+  "dependencies": {
+    "cookie-parser": "1.4.7",
+    "express": "5.1.0",
+    "mongodb": "6.16.0"
+  }
+}

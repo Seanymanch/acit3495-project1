@@ -1,0 +1,152 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: temperatures
+      MYSQL_USER: temperature_app
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+    secrets: [mysql_password, mysql_root_password]
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 25s
+    restart: unless-stopped
+    mem_limit: 768m
+    cpus: 1.0
+
+  mongo:
+    image: mongo:7.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo_root_password
+    secrets: [mongo_root_password, mongo_app_password, mongo_reader_password]
+    volumes:
+      - ./mongo/init-app-users.sh:/docker-entrypoint-initdb.d/01-create-users.sh:ro
+      - mongo_data:/data/db
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ping:1}).ok"]
+      interval: 10s
+      timeout: 8s
+      retries: 15
+      start_period: 30s
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1.0
+
+  auth:
+    build: ./auth
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: temperature_app
+      MYSQL_DATABASE: temperatures
+      APP_USERNAME: student
+    secrets: [mysql_password, jwt_secret, demo_password]
+    networks: [backend]
+    depends_on:
+      mysql: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+
+  analytics:
+    build: ./analytics
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: temperature_app
+      MYSQL_DATABASE: temperatures
+      MONGO_HOST: mongo
+      MONGO_USER: analytics_app
+      ANALYTICS_MODE: ${ANALYTICS_MODE:-sql}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+    secrets: [mysql_password, mongo_app_password, internal_token]
+    networks: [backend]
+    depends_on:
+      mysql: {condition: service_healthy}
+      mongo: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    mem_limit: 384m
+    cpus: 0.75
+
+  enter-data:
+    build: ./enter-data
+    ports: ["127.0.0.1:5000:5000"]
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: temperature_app
+      MYSQL_DATABASE: temperatures
+      AUTH_URL: http://auth:8000
+      ANALYTICS_URL: http://analytics:8000
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      COOKIE_SECURE: "false"
+    secrets: [mysql_password, internal_token]
+    networks: [frontend, backend]
+    depends_on:
+      auth: {condition: service_healthy}
+      analytics: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health',timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+
+  show-results:
+    build: ./show-results
+    ports: ["127.0.0.1:3000:3000"]
+    environment:
+      AUTH_URL: http://auth:8000
+      MONGO_HOST: mongo
+      MONGO_USER: analytics_reader
+      COOKIE_SECURE: "false"
+    secrets: [mongo_reader_password]
+    networks: [frontend, backend]
+    depends_on:
+      auth: {condition: service_healthy}
+      mongo: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+
+networks:
+  frontend:
+  backend:
+    internal: true
+
+volumes:
+  mysql_data:
+  mongo_data:
+
+secrets:
+  mysql_root_password: {file: ./secrets/mysql_root_password.txt}
+  mysql_password: {file: ./secrets/mysql_password.txt}
+  mongo_root_password: {file: ./secrets/mongo_root_password.txt}
+  mongo_app_password: {file: ./secrets/mongo_app_password.txt}
+  mongo_reader_password: {file: ./secrets/mongo_reader_password.txt}
+  jwt_secret: {file: ./secrets/jwt_secret.txt}
+  internal_token: {file: ./secrets/internal_token.txt}
+  demo_password: {file: ./secrets/demo_password.txt}
