@@ -11,10 +11,23 @@ Insert `architecture.md` diagram. Include screenshots of two web apps with real 
 ## 2. Docker and optimization 
 List six services, ports, networks, Dockerfiles, and multi-stage build. Include two `Measure-Command` output screenshots and `docker image ls` results.
 
+The Compose project defines six services:
+
+| Service | Port(s) | Network(s) | Image / Dockerfile |
+|---|---|---|---|
+| MySQL | 3306 (internal only; not published) | `backend` | `mysql:8.4` official image; no project Dockerfile |
+| MongoDB | 27017 (internal only; not published) | `backend` | `mongo:7.0` official image; no project Dockerfile |
+| Authentication (`auth`) | 8000 (internal only; not published) | `backend` | Built from `auth/Dockerfile` |
+| Analytics | 8000 (internal only; not published) | `backend` | Built from `analytics/Dockerfile` |
+| Enter Data | `127.0.0.1:5000` → container 5000 | `frontend`, `backend` | Built from `enter-data/Dockerfile` |
+| Show Results | `127.0.0.1:3000` → container 3000 | `frontend`, `backend` | Built from `show-results/Dockerfile` |
+
+Only Enter Data and Show Results publish host ports, bound to localhost. The `backend` network is internal. The Show Results optimized Dockerfile uses two `node:22-alpine` stages: one to install production dependencies and one to assemble and run the application as a non-root user. The baseline comparison uses `show-results/Dockerfile.baseline`.
+
 | Build | Image size | Build seconds | Notes |
 |---|---:|---:|---|
-| Node baseline | 1,590.7 MiB | 4.70 | `node:22`; copies the full application context and installs production dependencies. |
-| Node optimized | 243.6 MiB | 4.68 | Multi-stage `node:22-alpine` build; copies only runtime files and production dependencies, and runs as a non-root user. |
+| Node baseline | 1,590.7 MiB | 4.70 | `node:22` copies the full application context and installs production dependencies. |
+| Node optimized | 243.6 MiB | 4.68 | Multi-stage `node:22-alpine` build copies only runtime files and production dependencies, and runs as a non-root user. |
 
 Image sizes are from `docker image inspect`. Build times are uncached local measurements and may vary with the host and Docker environment.
 
