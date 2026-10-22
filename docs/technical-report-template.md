@@ -5,7 +5,8 @@ Date: [date]
 Repository: [GitHub repository URL]
 
 ## 1. Architecture and functionality (15 marks)
-Explain flow from login to storage to calculation to display. Insert `architecture.md` diagram. Include screenshots of two web apps with real calculated outputs.
+The user logs in through the Authentication Service, which validates their credentials. Once authenticated, the user submits temperature readings through the Enter Data application, which stores them in MySQL. The Analytics Service reads the data, calculates the minimum, maximum, average, and count, and saves the results in MongoDB. Finally, the Show Results application retrieves and displays the calculated statistics to the user.
+Insert `architecture.md` diagram. Include screenshots of two web apps with real calculated outputs.
 
 ## 2. Docker and optimization (15 marks)
 List six services, ports, networks, Dockerfiles, and multi-stage build. Include two `Measure-Command` output screenshots and `docker image ls` results.
@@ -39,8 +40,6 @@ Note possible measurement bias if dataset size or background load differs. Never
 ## 6. CI/CD (10 marks)
 Include successful Actions test/build/Trivy/tag/push outputs; links to GHCR images; `docker buildx imagetools inspect` output showing amd64 and arm64.
 
-## 7. Demonstration/defense (25 marks)
-Explain security tradeoffs, the role of each container, why two databases are required, how recovery works, and which parts are not production-ready.
+## 7. Limitations and next improvements
 
-## 8. Limitations and next improvements
-Explain that analytics refresh is triggered by submissions and is not retried automatically after an outage; add queue/scheduler for more resilience. Explain that password reset, HTTPS and login rate limiting would be needed outside localhost.
+The analytics service only updates when new data is submitted and does not automatically retry after a failure. Adding a queue or scheduler would improve reliability. For production use, the system would also need HTTPS, password reset functionality, and login rate limiting to improve security.
