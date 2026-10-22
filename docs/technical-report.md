@@ -13,8 +13,10 @@ List six services, ports, networks, Dockerfiles, and multi-stage build. Include 
 
 | Build | Image size | Build seconds | Notes |
 |---|---:|---:|---|
-| Node baseline | [measure] | [measure] | Full Node image |
-| Node optimized | [measure] | [measure] | Multi-stage Alpine + ignored files |
+| Node baseline | 1,590.7 MiB | 4.70 | `node:22`; copies the full application context and installs production dependencies. |
+| Node optimized | 243.6 MiB | 4.68 | Multi-stage `node:22-alpine` build; copies only runtime files and production dependencies, and runs as a non-root user. |
+
+Image sizes are from `docker image inspect`. Build times are uncached local measurements and may vary with the host and Docker environment.
 
 ## 3. Security 
 Show blocked unauthenticated access and invalid input; the localhost-only published ports; private databases and network; non-root `id` output; local secret files ignored by Git; scoped Mongo read/readWrite users; and Trivy scan results. Record any scan CVEs and planned fixes. State that public deployment needs HTTPS, secure cookies, and login rate limits.
