@@ -1,15 +1,24 @@
 # ACIT 3495 Project 1 Technical Report
 
-Author(s): Matthew, May, Sean
-Date: October 22, 2026
-Repository: https://github.com/Seanymanch/acit3495-project1
+- Matthew, May, Sean
+- Date: October 22, 2026
+- Repository: https://github.com/Seanymanch/acit3495-project1
 
 ## 1. Architecture and functionality 
 The user logs in through the Authentication Service, which validates their credentials. Once authenticated, the user submits temperature readings through the Enter Data application, which stores them in MySQL. The Analytics Service reads the data, calculates the minimum, maximum, average, and count, and saves the results in MongoDB. Finally, the Show Results application retrieves and displays the calculated statistics to the user.
-Insert `architecture.md` diagram. Include screenshots of two web apps with real calculated outputs.
+
+MySQL is used to store the original temperature readings because it provides structured, persistent storage. MongoDB is used to store the calculated statistics separately, allowing the Show Results application to retrieve results without recalculating them every time. This separation also allows the data collection and analytics components to operate independently.
+
+### Architecture Diagram
+
+![architecture](/screenshots/architecture%20diagram.png)
+
+- **Host-exposed**: only Enter Data on localhost:5000 and Show Results on localhost:3000.
+- **Internal**: Auth, Analytics, MySQL, and MongoDB stay on private Docker networking.
+- **Storage**: MySQL mysql_data; MongoDB mongo_data volumes.
+- **Failure behavior**: If MongoDB is down while writing data, the raw reading remains in MySQL; analytics must be retriggered after MongoDB recovers.
 
 ## 2. Docker and optimization 
-List six services, ports, networks, Dockerfiles, and multi-stage build. Include two `Measure-Command` output screenshots and `docker image ls` results.
 
 The Compose project defines six services:
 
@@ -31,29 +40,44 @@ Only Enter Data and Show Results publish host ports, bound to localhost. The `ba
 
 Image sizes are from `docker image inspect`. Build times are uncached local measurements and may vary with the host and Docker environment.
 
+The optimized Docker image reduced the image size from 1,590.7 MiB to 243.6 MiB. This was achieved using a smaller Alpine-based image and a multi-stage Dockerfile that only includes the files and dependencies needed at runtime. The build times remained nearly identical, but the smaller image needs less storage and is more efficient to distribute.
+
 ## 3. Security 
-Show blocked unauthenticated access and invalid input; the localhost-only published ports; private databases and network; non-root `id` output; local secret files ignored by Git; scoped Mongo read/readWrite users; and Trivy scan results. Record any scan CVEs and planned fixes. State that public deployment needs HTTPS, secure cookies, and login rate limits.
+The application uses authentication to block unauthorized access and input validation to reject invalid temperature readings. Security is improved by restricting published ports to localhost, keeping databases on a private Docker network, running containers as non-root users, and excluding local secret files from Git. MongoDB users have restricted read/readWrite permissions.
+
+Credentials are stored in local secret files that are excluded from Git to prevent accidental exposure. MongoDB user permissions are assigned based on their responsibilities to limit unnecessary database access. This reduces the risk of unauthorized access and protect application data.
+
+Opening the application in a private or incognito browser will always require the user to log in again. An incorrect password attempt will redirect back to the login page.
+
+For production use, the system would also need HTTPS, password reset functionality, and login rate limiting to improve security.
 
 ## 4. Reliability and persistence 
-List health checks and their coverage. Show readings before/after database container recreation **without removing volumes**. Document two failures and actual logs, impact, recovery commands, and any manual refresh step.
 
-| Failure | Observed user impact | Container/log evidence | How restored |
-|---|---|---|---|
-| MySQL stopped | [observe] | [image] | [record] |
-| MongoDB stopped | [observe] | [image] | [record] |
+All six services use Docker health checks to monitor database availability and application responsiveness. MySQL and MongoDB use database ping checks, while the application services use HTTP health endpoints. Health checks help identify unavailable services, but don't guarantee that the entire application workflow is functioning correctly. During failure testing,  we stopped the database services and restarted them to verify recovery. If MongoDB becomes unavailable during an analytics update, another temperature submission is required after recovery to trigger recalculation of the stored statistics.
 
-## 5. Performance and observability 
-Explain test: same user count, number of requests, host environment, login method, measurement timing, and dataset size. Compare two changes (SQL-side aggregation; database pool size). Include live-load `docker stats`, throughput, errors, latency, and anonymized logs.
+| Failure | Observed user impact | How restored |
+|---|---|---|
+| MySQL stopped | Login request failed when the database was stopped | `docker compose start mysql;` |
+| MongoDB stopped | Login to Show Results page failed | `docker compose start mongo;` |
+
+Database persistence was tested by recreating the MySQL and MongoDB containers without deleting their Docker volumes. After recreation, the previously entered temperature readings and calculated statistics remained available, confirming that data is stored persistently.
+
+## 5. Performance and observability
+
+We tested performance with 10 simulated users and 100 requests using a load testing script and authentication. The performance waas measured using throughput, error count, average response latency, and live CPU and memory usage using the `docker stats` command. Results are below.
 
 | Configuration | Requests | Throughput req/s | Errors | Mean latency s | CPU | RAM |
 |---|---:|---:|---:|---:|---:|---|
-| Python aggregation, pool 1 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
-| SQL aggregation, pool 5 | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| Python aggregation, pool 1 | 100 | 9.49/s | 0 | 1.03s | 0.42% | 13.07% |
+| SQL aggregation, pool 5 | 100 | 8.87/s | 0 | 1.11s | 0.87% | 61.28% |
 
-Note possible measurement bias if dataset size or background load differs. Never claim an improvement without supporting numbers.
+CPU and RAM scores are snapshots from during the tests and may not reflect true performance.
 
 ## 6. CI/CD 
-Include successful Actions test/build/Trivy/tag/push outputs; links to GHCR images; `docker buildx imagetools inspect` output showing amd64 and arm64.
+
+Our project uses GitHub Actions to automate the CI/CD process. The pipeline runs automated tests, builds Docker images, and performs Trivy vulnerability scans. Successfully built images are tagged and pushed to GitHub Container Registry (GHCR). We verified the published images using `docker buildx imagetools inspect` to confirm they both support AMD64 and ARM64 architectures.
+
+Automating the CI/CD pipeline helps identify problems before deployment and ensures Docker images are tested and scanned consistently. Multi-architecture images allow the application to run on both AMD64 and ARM64 systems without requiring separate builds.
 
 ## 7. Limitations and next improvements
 
