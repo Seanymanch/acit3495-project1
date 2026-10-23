@@ -64,7 +64,7 @@ Database persistence was tested by recreating the MySQL and MongoDB containers w
 
 ## 5. Performance and observability
 
-We tested performance with 10 simulated users and 100 requests using a load testing script and authentication. The performance waas measured using throughput, error count, average response latency, and live CPU and memory usage using the `docker stats` command. Results are below.
+We tested performance with 10 simulated users and 100 requests using a load testing script and authentication. The performance was measured using throughput, error count, average response latency, and live CPU and memory usage using the `docker stats` command. Results are below.
 
 | Configuration | Requests | Throughput req/s | Errors | Mean latency s | CPU | RAM |
 |---|---:|---:|---:|---:|---:|---|
