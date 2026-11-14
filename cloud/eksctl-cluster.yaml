@@ -5,6 +5,7 @@ kind: ClusterConfig
 metadata:
   name: acit3495-p2
   region: us-west-2
+  version: "1.36"
 iam:
   withOIDC: true
 managedNodeGroups:
@@ -20,3 +21,4 @@ addonsConfig:
 addons:
   - name: metrics-server
   - name: aws-ebs-csi-driver
+  - name: eks-pod-identity-agent
