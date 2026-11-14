@@ -1,0 +1,24 @@
+# OPTIONAL: two public HTTP load balancers. Demo only, no TLS.
+# Do not use real credentials on these endpoints; delete services after grading.
+# Port-forwarding from your authenticated kubectl workstation is safer.
+apiVersion: v1
+kind: Service
+metadata:
+  name: enter-data-public
+  namespace: acit3495
+spec:
+  type: LoadBalancer
+  selector: {app: enter-data}
+  ports:
+    - {port: 80, targetPort: 5000, protocol: TCP}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: show-results-public
+  namespace: acit3495
+spec:
+  type: LoadBalancer
+  selector: {app: show-results}
+  ports:
+    - {port: 80, targetPort: 3000, protocol: TCP}

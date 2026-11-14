@@ -1,0 +1,29 @@
+ACIT 3495 PROJECT 2 - START HERE
+
+1. Read README.md first. It has ALL commands and the safe AWS cleanup process.
+2. The original assignment is docs/Original_Project2_Assignment.docx.
+3. Open PowerShell in this folder. Install the prerequisites listed in README.md.
+4. python -m pip install -r requirements-project2.txt
+5. python -m unittest discover -s tests -v
+6. aws sts get-caller-identity
+7. eksctl create cluster -f cloud/eksctl-cluster.yaml
+8. aws eks update-kubeconfig --region us-west-2 --name acit3495-p2
+9. python scripts/generate_secrets.py
+10. docker login ghcr.io
+11. python scripts/build_push.py --owner seanymanch --tag p2-v1
+12. python scripts/deploy.py --owner seanymanch --tag p2-v1
+13. Port-forward the Enter Data and Show Results Services as directed in README.md.
+14. python scripts/smoke_test_cloud.py
+15. python scripts/run_experiments.py
+16. python scripts/summarize_results.py
+17. python scripts/create_report.py
+18. python scripts/create_presentation.py
+19. Add YOUR REAL screenshots, measurements, interpretations and group names.
+20. Demo using docs/demo-script.md, then DELETE AWS resources as in README.md.
+
+IMPORTANT:
+- This package contains actual Project 1 app code from an earlier saved archive, not a live copy of your private GitHub repo.
+- AWS resources, GHCR access, account credentials, live benchmark results and screenshots are not in the ZIP.
+- Do not claim scaling occurred until the measured evidence shows it.
+- Do not commit secrets/*.txt or enter production credentials into the demo HTTP load balancers.
+- AWS will bill until the cloud resources are deleted.

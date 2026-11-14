@@ -1,0 +1,13 @@
+# AWS EBS CSI add-on must be installed, with the required IAM permissions.
+# gp3 uses delayed binding so EBS is provisioned in the correct node AZ.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: acit3495-gp3
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+parameters:
+  type: gp3
+  encrypted: "true"
