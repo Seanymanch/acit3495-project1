@@ -1,0 +1,27 @@
+digraph G {
+ graph [label="ACIT 3495 Project 2  |  AWS EKS cloud deployment",labelloc="t",fontsize=20,fontname="Arial",ranksep=0.7, nodesep=0.5, bgcolor="white", pad=0.25, splines=polyline];
+ node [shape=box,style="rounded,filled",color="#cbd5e1",fillcolor="#eff6ff",fontname="Arial",fontsize=12,margin="0.15,0.1"];
+ edge [color="#64748b",arrowsize=0.8,fontname="Arial",fontsize=10];
+ user [label="User / k6 load tester",shape=oval,fillcolor="#e0f2fe"];
+ subgraph cluster_eks {
+   label="Amazon EKS  |  namespace: acit3495"; color="#64748b"; style="rounded,filled"; fillcolor="#f8fafc";
+   enter [label="Enter Data\nFlask service\nClusterIP :5000",fillcolor="#dbeafe"];
+   results [label="Show Results\nNode service\nClusterIP :3000",fillcolor="#dbeafe"];
+   auth [label="Auth backend\nFastAPI Deployment\nHPA: 1–5 pods, CPU 60%",fillcolor="#fef3c7",penwidth=2,color="#d97706"];
+   analytics [label="Analytics backend\nFastAPI Deployment",fillcolor="#dcfce7"];
+   mysql [label="MySQL 8.4\nStatefulSet + EBS PVC",fillcolor="#f3e8ff"];
+   mongo [label="MongoDB 7\nStatefulSet + EBS PVC",fillcolor="#f3e8ff"];
+   metrics [label="Metrics Server\nCPU samples → HPA",fillcolor="#fef3c7"];
+   enter -> auth [label="Login / verify"];
+   results -> auth [label="Login / verify"];
+   enter -> mysql [label="Store readings"];
+   auth -> mysql [label="User table"];
+   enter -> analytics [label="Recalculate"];
+   analytics -> mysql [label="Aggregate"];
+   analytics -> mongo [label="Write snapshot"];
+   results -> mongo [label="Read snapshot"];
+   metrics -> auth [label="Scale replicas",style=dashed];
+ }
+ user -> enter [label="kubectl port-forward\nor demo LoadBalancer"];
+ user -> results [label="kubectl port-forward\nor demo LoadBalancer"];
+}

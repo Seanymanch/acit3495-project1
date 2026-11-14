@@ -1,0 +1,243 @@
+# deploy.py substitutes __OWNER__ and __TAG__ at apply time.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth
+  namespace: acit3495
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth
+  template:
+    metadata:
+      labels:
+        app: auth
+    spec:
+      containers:
+        - name: auth
+          image: ghcr.io/__OWNER__/acit3495-auth:__TAG__
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          env:
+            - {name: MYSQL_HOST, value: mysql}
+            - {name: MYSQL_USER, value: temperature_app}
+            - {name: MYSQL_DATABASE, value: temperatures}
+            - {name: APP_USERNAME, value: student}
+          volumeMounts:
+            - {name: app-secrets, mountPath: /run/secrets, readOnly: true}
+          startupProbe:
+            httpGet: {path: /live, port: 8000}
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: {path: /health, port: 8000}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /live, port: 8000}
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 1000m, memory: 384Mi}
+      volumes:
+        - name: app-secrets
+          secret:
+            secretName: acit3495-secrets
+            items:
+              - {key: mysql_password, path: mysql_password}
+              - {key: jwt_secret, path: jwt_secret}
+              - {key: demo_password, path: demo_password}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth
+  namespace: acit3495
+spec:
+  type: ClusterIP
+  selector: {app: auth}
+  ports:
+    - {port: 8000, targetPort: 8000}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics
+  namespace: acit3495
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: analytics}
+  template:
+    metadata:
+      labels: {app: analytics}
+    spec:
+      containers:
+        - name: analytics
+          image: ghcr.io/__OWNER__/acit3495-analytics:__TAG__
+          imagePullPolicy: Always
+          ports:
+            - {containerPort: 8000}
+          env:
+            - {name: MYSQL_HOST, value: mysql}
+            - {name: MYSQL_USER, value: temperature_app}
+            - {name: MYSQL_DATABASE, value: temperatures}
+            - {name: MONGO_HOST, value: mongo}
+            - {name: MONGO_USER, value: analytics_app}
+            - {name: ANALYTICS_MODE, value: sql}
+            - {name: DB_POOL_SIZE, value: '5'}
+          volumeMounts:
+            - {name: app-secrets, mountPath: /run/secrets, readOnly: true}
+          startupProbe:
+            httpGet: {path: /live, port: 8000}
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: {path: /health, port: 8000}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /live, port: 8000}
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 150m, memory: 128Mi}
+            limits: {cpu: 750m, memory: 512Mi}
+      volumes:
+        - name: app-secrets
+          secret:
+            secretName: acit3495-secrets
+            items:
+              - {key: mysql_password, path: mysql_password}
+              - {key: mongo_app_password, path: mongo_app_password}
+              - {key: internal_token, path: internal_token}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: analytics
+  namespace: acit3495
+spec:
+  type: ClusterIP
+  selector: {app: analytics}
+  ports:
+    - {port: 8000, targetPort: 8000}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enter-data
+  namespace: acit3495
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: enter-data}
+  template:
+    metadata:
+      labels: {app: enter-data}
+    spec:
+      containers:
+        - name: enter-data
+          image: ghcr.io/__OWNER__/acit3495-enter-data:__TAG__
+          imagePullPolicy: Always
+          ports:
+            - {containerPort: 5000}
+          env:
+            - {name: MYSQL_HOST, value: mysql}
+            - {name: MYSQL_USER, value: temperature_app}
+            - {name: MYSQL_DATABASE, value: temperatures}
+            - {name: AUTH_URL, value: 'http://auth:8000'}
+            - {name: ANALYTICS_URL, value: 'http://analytics:8000'}
+            - {name: DB_POOL_SIZE, value: '5'}
+            - {name: COOKIE_SECURE, value: 'false'}
+            - {name: SHOW_RESULTS_URL, value: 'http://localhost:3000'}
+          volumeMounts:
+            - {name: app-secrets, mountPath: /run/secrets, readOnly: true}
+          startupProbe:
+            httpGet: {path: /live, port: 5000}
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: {path: /health, port: 5000}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /live, port: 5000}
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 150m, memory: 128Mi}
+            limits: {cpu: 750m, memory: 384Mi}
+      volumes:
+        - name: app-secrets
+          secret:
+            secretName: acit3495-secrets
+            items:
+              - {key: mysql_password, path: mysql_password}
+              - {key: internal_token, path: internal_token}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enter-data
+  namespace: acit3495
+spec:
+  type: ClusterIP
+  selector: {app: enter-data}
+  ports:
+    - {name: http, port: 5000, targetPort: 5000}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: show-results
+  namespace: acit3495
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: show-results}
+  template:
+    metadata:
+      labels: {app: show-results}
+    spec:
+      containers:
+        - name: show-results
+          image: ghcr.io/__OWNER__/acit3495-show-results:__TAG__
+          imagePullPolicy: Always
+          ports:
+            - {containerPort: 3000}
+          env:
+            - {name: AUTH_URL, value: 'http://auth:8000'}
+            - {name: MONGO_HOST, value: mongo}
+            - {name: MONGO_USER, value: analytics_reader}
+            - {name: COOKIE_SECURE, value: 'false'}
+            - {name: ENTER_PUBLIC_URL, value: 'http://localhost:5000'}
+          volumeMounts:
+            - {name: app-secrets, mountPath: /run/secrets, readOnly: true}
+          startupProbe:
+            httpGet: {path: /live, port: 3000}
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: {path: /health, port: 3000}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /live, port: 3000}
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 384Mi}
+      volumes:
+        - name: app-secrets
+          secret:
+            secretName: acit3495-secrets
+            items:
+              - {key: mongo_reader_password, path: mongo_reader_password}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: show-results
+  namespace: acit3495
+spec:
+  type: ClusterIP
+  selector: {app: show-results}
+  ports:
+    - {name: http, port: 3000, targetPort: 3000}
